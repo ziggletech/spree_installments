@@ -1,0 +1,16 @@
+Extend better-paypal-expresss
+=========================
+- We need to extend better-paypal-express gem to include recurring profile capability.
+- It has already those via 'paypal-sdk-merchant' gem. We just need to expose it.
+
+
+On App side (initial purchase amount + recurring profile)
+==========================================================
+- We have case of mix purchased one-time purchase + recurring profile
+- implement recurring profile
+- Than include initial purchase
+- Reports will be fetched from Paypal using IPN.
+- Done
+
+Reference:
+https://developer.paypal.com/docs/classic/paypal-payments-pro/integration-guide/WPRecurringPayments/#id086510570PN

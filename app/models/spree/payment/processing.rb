@@ -29,7 +29,7 @@ module Spree
           # Standard ActiveMerchant capture usage
           response = payment_method.capture(
             amount,
-            response_code,
+            payment_method.type == "Spree::Gateway::PayPalExpress" ? self.source : response_code,
             gateway_options
           )
 
@@ -150,6 +150,7 @@ module Spree
               self.cvv_response_message = response.cvv_result['message']
             end
           end
+
           self.send("#{success_state}!")
         else
           self.send(failure_state)

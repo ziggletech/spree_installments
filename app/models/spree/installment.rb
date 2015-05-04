@@ -33,8 +33,14 @@ module Spree
         raise Spree::Core::GatewayError, Spree.t(:no_pending_payments)
       else
         payment = pending_payments.first
-        cents = (self.amount * 100).to_i
-        payment.capture!(cents, true)
+        # cents = (self.amount * 100).to_i
+
+        # TODO: paypal except payment in normal amount. See this in case of braintree also.
+        # Normall cents are passed.
+        payment.capture!(self.amount, true)
+
+        # WIP: creating recurring profile after first capture
+        payment.payment_method.make_recurring(self, self.installment_plan, payment.source)
       end
     rescue Spree::Core::GatewayError => e
       # TODO: record failure report

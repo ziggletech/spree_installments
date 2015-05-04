@@ -2,24 +2,18 @@ Spree::Shipment.class_eval do
   has_one :installment_plan, class_name: 'Spree::InstallmentPlan', foreign_key: "shipment_id"
 
   def process_order_payments
-    # if shipment is not installment capable than do nothings
-    # else
-    # get the shipment amount
-    # get the installment period and period span
-    # create installment plan
-    # calculate installments and create them
-    # capture first installment
-    # done
     if installment_capable?
       process_installment_order_payments
     else
       process_non_installment_order_payments
     end
-  end  
+  end
 
   private
     def process_installment_order_payments
       create_installment_plan
+      # TODO: installments creation might not be needed as we will manage them one
+      # recurring profile are created.
       create_installments
       capture_first_installment!
     end
@@ -47,8 +41,8 @@ Spree::Shipment.class_eval do
                               else
                                 payment.amount
                               end
-          cents = (capturable_amount * 100).to_i
-          payment.capture!(cents, true)
+          # cents = (capturable_amount * 100).to_i
+          payment.capture!(capturable_amount, true)
           shipment_to_pay -= capturable_amount
         end
       end
@@ -64,7 +58,9 @@ Spree::Shipment.class_eval do
     end
 
     def create_installment_plan
-      shipment_to_pay = final_price_with_items
+      # byebug
+      # shipment_to_pay = final_price_with_items
+      shipment_to_pay = item_cost # we have added adjustment in order already
       installment_period = Spree::Config[:installment_period]
       installment_period_span = Spree::Config[:installment_period_span]
 
@@ -74,7 +70,7 @@ Spree::Shipment.class_eval do
       variant_product = inventory_units.includes(:variant).first.variant.product
 
       # TODO: create plan on braintree before_create
-      self.create_installment_plan!({ 
+      self.create_installment_plan!({
         product_id: variant_product.id,
         email: self.order.email,
         period: installment_period,
@@ -89,7 +85,7 @@ Spree::Shipment.class_eval do
       installment_period_span = Spree::Config[:installment_period_span]
       installment_amount = (shipment_to_pay / installment_period).round(2)
       installment_total = 0
-      
+
       installment_amount_pool = (1...installment_period).each_with_object([]) do |i_period, pool|
         pool << installment_amount
       end
@@ -108,4 +104,5 @@ Spree::Shipment.class_eval do
     def capture_first_installment!
       self.installment_plan.installments.first.capture!
     end
+
 end

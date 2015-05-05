@@ -6,22 +6,24 @@ Spree::Gateway::PayPalExpress.class_eval do
   end
 
   def authorize(amount, express_checkout, gateway_options={})
-    do_action "Authorization", express_checkout, gateway_options
-  end
+    pp_request = provider.build_create_billing_agreement({
+      :Token => express_checkout.token
+    })
+    pp_response = provider.create_billing_agreement(pp_request)
 
-  def purchase(amount, express_checkout, gateway_options={})
-    do_action "Sale", express_checkout, gateway_options
-  end
-
-  def make_recurring(installment, installment_plan, express_checkout)
-    pp_request = provider.build_create_recurring_payments_profile(create_recurring_profile_request_details(installment, installment_plan, express_checkout))
-    byebug
-    pp_response = provider.create_recurring_payments_profile(pp_request)
     if pp_response.success?
-      Class.new do
-        def success?; true; end
-        def authorization; nil; end
-      end.new
+      # We need to store the reference id for the future.
+      # This is mainly so we can use it later on to capture the payment.
+      reference_id = pp_response.billing_agreement_id
+      # This is rather hackish, required for payment/processing handle_response code.
+      ActiveMerchant::Billing::Response.new(true, 'SpreeGatewayPayPalExpress: success', {}, :authorization => reference_id)
+      # Class.new do
+#         def initialize(reference_id)
+#           @reference_id = reference_id
+#         end
+#         def success?; true; end
+#         def authorization; @reference_id; end
+#       end.new(reference_id)
     else
       class << pp_response
         def to_s
@@ -32,21 +34,26 @@ Spree::Gateway::PayPalExpress.class_eval do
     end
   end
 
-  def capture(amount, express_checkout, gateway_options={})
-    pp_details_request = provider.build_do_capture({
-      :AuthorizationID => express_checkout.transaction_id,
-      :Amount => {
-          :currencyID => gateway_options[:currency],
-          :value => amount },
-      :CompleteType => "NotComplete"
+  def purchase(amount, express_checkout, gateway_options={})
+    do_action "Sale", express_checkout, gateway_options
+  end
+
+  def capture(amount, auth_code, gateway_options={})
+    pp_details_request = provider.build_do_reference_transaction({
+      :DoReferenceTransactionRequestDetails => {
+        :ReferenceID => auth_code,
+        :PaymentAction => "Sale",
+        :PaymentDetails => {
+          :OrderTotal => {
+            :currencyID => gateway_options[:currency],
+            :value => amount
+          }
+        }
+      }
     })
 
-    pp_response = provider.do_capture(pp_details_request)
+    pp_response = provider.do_reference_transaction(pp_details_request)
     if pp_response.success?
-      # transaction id is already stored when payment is authorized. so do nothing here
-      # example response for transaction_id = 9K62973311046611B represented as AuthorizationID ii response
-      # {"Timestamp"=>"2015-05-04T07:34:27Z", "Ack"=>"Success", "CorrelationID"=>"4a08b89597659", "Version"=>"106.0", "Build"=>"16481822", "DoCaptureResponseDetails"=>{"AuthorizationID"=>"9K62973311046611B", "PaymentInfo"=>{"TransactionID"=>"91Y885745C368774X", "ParentTransactionID"=>"9K62973311046611B", "ReceiptID"=>nil, "TransactionType"=>"cart", "PaymentType"=>"instant", "PaymentDate"=>"2015-05-04T07:34:27Z", "GrossAmount"=>{"@currencyID"=>"USD", "value"=>"27.99"}, "FeeAmount"=>{"@currencyID"=>"USD", "value"=>"1.11"}, "TaxAmount"=>{"@currencyID"=>"USD", "value"=>"1.15"}, "ExchangeRate"=>nil, "PaymentStatus"=>"Completed", "PendingReason"=>"none", "ReasonCode"=>"none", "ProtectionEligibility"=>"Ineligible", "ProtectionEligibilityType"=>"None"}}}
-
       # This is rather hackish, required for payment/processing handle_response code.
       Class.new do
         def success?; true; end
@@ -63,29 +70,7 @@ Spree::Gateway::PayPalExpress.class_eval do
   end
 
   private
-    def create_recurring_profile_request_details(installment, installment_plan, express_checkout)
-      {
-        :CreateRecurringPaymentsProfileRequestDetails => {
-          :Token => express_checkout.token,
-          :PayerID => express_checkout.payer_id,
-          :RecurringPaymentsProfileDetails => {
-            :BillingStartDate => Time.zone.now },
-          :ScheduleDetails => {
-            :Description => installment_plan.product.name,
-            :PaymentPeriod => {
-              :BillingPeriod => "Month", # installment_plan.period
-              :BillingFrequency => 3, # # installment_plan.period_span
-              :Amount => {
-                :currencyID => "USD",
-                :value => installment.amount } },
-            :MaxFailedPayments => 3,
-            :ActivationDetails => {
-              :FailedInitialAmountAction => "ContinueOnFailure" },
-            :AutoBillOutstandingAmount => "NoAutoBill" } } }
-    end
-
     def do_action(payment_action, express_checkout, gateway_options)
-      byebug
       pp_details_request = provider.build_get_express_checkout_details({
         :Token => express_checkout.token
       })

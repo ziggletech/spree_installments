@@ -1,6 +1,27 @@
 Spree::PaypalController.class_eval do
-
   private
+    def express_checkout_request_details order, items
+      { :SetExpressCheckoutRequestDetails => {
+          :InvoiceID => order.number,
+          :BuyerEmail => order.email,
+          :ReturnURL => confirm_paypal_url(:payment_method_id => params[:payment_method_id], :utm_nooverride => 1),
+          :CancelURL =>  cancel_paypal_url,
+          :SolutionType => payment_method.preferred_solution.present? ? payment_method.preferred_solution : "Mark",
+          :LandingPage => payment_method.preferred_landing_page.present? ? payment_method.preferred_landing_page : "Billing",
+          :cppheaderimage => payment_method.preferred_logourl.present? ? payment_method.preferred_logourl : "",
+          :NoShipping => 1,
+          :PaymentDetails => [payment_details(items)],
+          :BillingAgreementDetails => [billing_agreement_details]
+      }}
+    end
+
+    def billing_agreement_details
+      {
+        :BillingType => "MerchantInitiatedBilling",
+        :BillingAgreementDescription => "EZ Pay at DragonDoor"
+      }
+    end
+  
     def payment_details items
       # This retrieves the cost of shipping after promotions are applied
       # For example, if shippng costs $10, and is free with a promotion, shipment_sum is now $10

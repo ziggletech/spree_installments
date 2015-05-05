@@ -29,7 +29,7 @@ module Spree
           # Standard ActiveMerchant capture usage
           response = payment_method.capture(
             amount,
-            payment_method.type == "Spree::Gateway::PayPalExpress" ? self.source : response_code,
+            response_code,
             gateway_options
           )
 

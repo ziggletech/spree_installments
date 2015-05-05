@@ -38,9 +38,6 @@ module Spree
         # TODO: paypal except payment in normal amount. See this in case of braintree also.
         # Normall cents are passed.
         payment.capture!(self.amount, true)
-
-        # WIP: creating recurring profile after first capture
-        payment.payment_method.make_recurring(self, self.installment_plan, payment.source)
       end
     rescue Spree::Core::GatewayError => e
       # TODO: record failure report

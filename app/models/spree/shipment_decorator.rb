@@ -58,9 +58,7 @@ Spree::Shipment.class_eval do
     end
 
     def create_installment_plan
-      # byebug
-      # shipment_to_pay = final_price_with_items
-      shipment_to_pay = item_cost # we have added adjustment in order already
+      shipment_to_pay = final_price_with_items
       installment_period = Spree::Config[:installment_period]
       installment_period_span = Spree::Config[:installment_period_span]
 

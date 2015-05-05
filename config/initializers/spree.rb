@@ -1,1 +1,1 @@
-Rails.application.config.spree.stock_splitters << Spree::Stock::Splitter::InstallmentShippingCategory
+Rails.application.config.spree.stock_splitters << Spree::Stock::Splitter::InstallmentOptionTypeSplitter

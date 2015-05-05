@@ -52,9 +52,11 @@ Spree::Shipment.class_eval do
     end
 
     def installment_capable?
-      inventory_units.includes(:variant)
-        .map(&:variant).map(&:shipping_category_id)
-        .include?(Spree::Config[:installment_shipping_category_id])
+      if option_type = Spree::OptionType.find_by(name: Spree::Config[:installment_option_type_name])
+        if option_value = Spree::OptionValue.find_by(name: Spree::Config[:installment_option_value_name], option_type_id: option_type.id)
+          return inventory_units.includes(:variant).has_option(option_type, option_value)
+        end
+      end
     end
 
     def create_installment_plan

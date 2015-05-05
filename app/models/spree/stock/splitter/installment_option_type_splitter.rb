@@ -14,15 +14,14 @@ module Spree
           def split_by_installment_option_type(package)
             categories = Hash.new { |hash, key| hash[key] = [] }
             package.contents.each_with_index do |item, index|
-              option_type = item.variant.product.option_types.find_by_name(Spree::Config[:installment_option_type_name])
-              if option_type
-                option_value = item.variant.option_values.find_by_option_type_id(option_type.id)
-                if option_value && option_value.name == Spree::Config[:installment_option_value_name]
+              installment_capable = false
+              if option_type = item.variant.product.option_types.find_by(name: Spree::Config[:installment_option_type_name])
+                if option_value = item.variant.option_values.find_by(name: Spree::Config[:installment_option_value_name], option_type_id: option_type.id)
                   categories[index] << item
-                else
-                  categories[package.contents.size + 1] << item
+                  installment_capable = true
                 end
               end
+              categories[package.contents.size + 1] << item unless installment_capable
             end
             hash_to_packages(categories)
           end

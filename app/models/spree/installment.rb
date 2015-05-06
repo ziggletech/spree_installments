@@ -26,23 +26,13 @@ module Spree
 
     def before_paid
       order = self.installment_plan.shipment.order
-      pending_payments = order.payments.sort_by(&:uncaptured_amount).reverse
+      pending_payments =  order.pending_payments
+                            .sort_by(&:uncaptured_amount).reverse
 
-      # NOTE Do we really need to force orders to have pending payments on dispatch?
-      if pending_payments.empty?
-        raise Spree::Core::GatewayError, Spree.t(:no_pending_payments)
-      else
-        payment = pending_payments.first
-        # cents = (self.amount * 100).to_i
+      payment = pending_payments.first
 
-        # TODO: paypal except payment in normal amount. See this in case of braintree also.
-        # Normall cents are passed.
-        payment.capture!(self.amount, true)
-      end
-    rescue Spree::Core::GatewayError => e
-      # TODO: record failure report
-      errors.add(:base, e.message)
-      return !!Spree::Config[:allow_checkout_on_gateway_error]
+      cents = (self.amount * 100).to_i
+      payment.capture!(cents)
     end
   end
 end

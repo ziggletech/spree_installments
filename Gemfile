@@ -8,4 +8,6 @@ gem 'spree_paypal_express', github: 'spree-contrib/better_spree_paypal_express',
 
 gem 'byebug'
 
+gem 'rspec-activemodel-mocks'
+
 gemspec

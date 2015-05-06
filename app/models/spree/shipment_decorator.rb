@@ -9,11 +9,15 @@ Spree::Shipment.class_eval do
     end
   end
 
+  def installment_capable?
+    if option_type = Spree::OptionType.find_by(name: Spree::Config[:installment_option_type_name])
+      return inventory_units.size == 1 && !inventory_units.first.variant.option_values.find_by(name: Spree::Config[:installment_option_value_name], option_type_id: option_type.id).nil?
+    end
+  end
+
   private
     def process_installment_order_payments
       create_installment_plan
-      # TODO: installments creation might not be needed as we will manage them one
-      # recurring profile are created.
       create_installments
       capture_first_installment!
     end
@@ -49,14 +53,6 @@ Spree::Shipment.class_eval do
     rescue Spree::Core::GatewayError => e
       errors.add(:base, e.message)
       return !!Spree::Config[:allow_checkout_on_gateway_error]
-    end
-
-    def installment_capable?
-      if option_type = Spree::OptionType.find_by(name: Spree::Config[:installment_option_type_name])
-        if option_value = Spree::OptionValue.find_by(name: Spree::Config[:installment_option_value_name], option_type_id: option_type.id)
-          return inventory_units.includes(:variant).has_option(option_type, option_value)
-        end
-      end
     end
 
     def create_installment_plan

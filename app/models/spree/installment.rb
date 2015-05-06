@@ -32,7 +32,7 @@ module Spree
       payment = pending_payments.first
 
       cents = (self.amount * 100).to_i
-      payment.capture!(cents)
+      payment.capture_installment!(cents)
     end
   end
 end

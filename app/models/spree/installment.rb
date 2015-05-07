@@ -32,7 +32,11 @@ module Spree
       payment = pending_payments.first
 
       cents = (self.amount * 100).to_i
-      payment.capture_installment!(cents)
+      if payment.payment_method.type == "Spree::Gateway::BraintreeGateway"
+        payment.capture_installment!(cents)
+      else
+        payment.capture!(cents)
+      end
     end
   end
 end

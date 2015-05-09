@@ -15,6 +15,11 @@ Spree::Shipment.class_eval do
     end
   end
 
+  def first_installment
+    self.installment_plan.installments.first if self.installment_plan && self.installment_plan.installments.any?
+    calculate_installments.first
+  end
+
   private
     def process_installment_order_payments
       create_installment_plan
@@ -64,7 +69,7 @@ Spree::Shipment.class_eval do
       })
     end
 
-    def create_installments
+    def calculate_installments
       shipment_to_pay = final_price_with_items
       installment_period = Spree::Config[:installment_period]
       installment_period_span = Spree::Config[:installment_period_span]
@@ -76,6 +81,11 @@ Spree::Shipment.class_eval do
       end
 
       installment_amount_pool << (shipment_to_pay - installment_amount_pool.sum).round(2)
+      installment_amount_pool
+    end
+
+    def create_installments
+      installment_amount_pool = calculate_installments
 
       installment_amount_pool.each_with_index do |inst_amount, index|
         self.installment_plan.installments.create({

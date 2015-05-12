@@ -24,34 +24,52 @@ describe Spree::Shipment, :type => :model do
   let(:line_item_no) { mock_model(Spree::LineItem, variant: variant2) }
 
   let(:shipment) do
-    shipment = Spree::Shipment.new(cost: 1, state: 'pending', stock_location: create(:stock_location))
+    shipment = Spree::Shipment.new(cost: 1, state: 'ready', stock_location: create(:stock_location))
     allow(shipment).to receive_messages order: order
     allow(shipment).to receive_messages shipping_method: shipping_method
     shipment.save
     shipment
   end
 
+  def create_inventory_unit(line_item)
+    shipment.inventory_units.create(
+      pending: true,
+      variant: line_item.variant,
+      line_item: line_item,
+      order: order
+    )
+    shipment
+  end
+
   context '#installment_capable' do
     it "retuns true if has installment capable variant" do
-      shipment.inventory_units.build(
-        pending: true,
-        variant: line_item_yes.variant,
-        line_item: line_item_yes,
-        order: order
-      )
-      shipment.save
+      create_inventory_unit(line_item_yes)
       expect(shipment.installment_capable?).to be true
     end
     
     it "retuns nil if has not installment capable variant" do
-      shipment.inventory_units.build(
-        pending: true,
-        variant: line_item_no.variant,
-        line_item: line_item_no,
-        order: order
-      )
-      shipment.save
+      create_inventory_unit(line_item_no)
       expect(shipment.installment_capable?).to be_falsy
     end
+
+    context 'with Config.auto_capture_on_dispatch == true' do
+      before do
+        Spree::Config[:auto_capture_on_dispatch] = true
+        @order = create :completed_order_with_pending_payment
+        @shipment = @order.shipments.first
+      end
+      
+      it "tells the order to process non installment payment in #after_ship for normal shipment" do
+        expect(@shipment).to receive(:process_non_installment_order_payments)
+        @shipment.ship!
+      end
+
+      it "tells the order to process installment payment in #after_ship for install_capable shipments" do
+        allow(@shipment).to receive_messages installment_capable?: true
+        expect(@shipment).to receive(:process_installment_order_payments)
+        @shipment.ship!
+      end
+    end
+
   end
 end

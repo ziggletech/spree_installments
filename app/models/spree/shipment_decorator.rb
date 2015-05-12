@@ -1,4 +1,5 @@
 Spree::Shipment.class_eval do
+  has_many :payments, class_name: 'Spree::Payment', foreign_key: "shipment_id"
   has_one :installment_plan, class_name: 'Spree::InstallmentPlan', foreign_key: "shipment_id"
 
   def process_order_payments
@@ -16,8 +17,8 @@ Spree::Shipment.class_eval do
   end
 
   def first_installment
-    self.installment_plan.installments.first if self.installment_plan && self.installment_plan.installments.any?
-    calculate_installments.first
+    return self.installment_plan.installments.first if self.installment_plan && self.installment_plan.installments.any?
+    Spree::InstallmentCalculator.new(self.final_price_with_items).installments.first
   end
 
   private
@@ -28,28 +29,35 @@ Spree::Shipment.class_eval do
     end
 
     def process_non_installment_order_payments
-      pending_payments =  order.pending_payments
-                            .sort_by(&:uncaptured_amount).reverse
+      pending_payments = order.pending_payments
 
       shipment_to_pay = final_price_with_items
-      payments_amount = 0
+      shipment_payments = pending_payments.where(shipment_id: self.id)
 
-      payments_pool = pending_payments.each_with_object([]) do |payment, pool|
-        break if payments_amount >= shipment_to_pay
-        payments_amount += payment.uncaptured_amount
-        pool << payment
-      end
+      unless shipment_payments.any?
+        payment = create_shipment_payment(shipment_to_pay, pending_payments.first, self.id)
+        payment.purchase!
+      else
+        pending_payments = shipment_payments.sort_by(&:uncaptured_amount).reverse
+        payments_amount = 0
 
-      payments_pool.each do |payment|
-        capturable_amount = if payment.amount >= shipment_to_pay
-                              shipment_to_pay
-                            else
-                              payment.amount
-                            end
+        payments_pool = pending_payments.each_with_object([]) do |payment, pool|
+          break if payments_amount >= shipment_to_pay
+          payments_amount += payment.uncaptured_amount
+          pool << payment
+        end
 
-        cents = (capturable_amount * 100).to_i
-        payment.capture!(cents)
-        shipment_to_pay -= capturable_amount
+        payments_pool.each do |payment|
+          capturable_amount = if payment.amount >= shipment_to_pay
+                                shipment_to_pay
+                              else
+                                payment.amount
+                              end
+
+          cents = (capturable_amount * 100).to_i
+          payment.capture!(cents)
+          shipment_to_pay -= capturable_amount
+        end
       end
     end
 
@@ -69,29 +77,15 @@ Spree::Shipment.class_eval do
       })
     end
 
-    def calculate_installments
-      shipment_to_pay = final_price_with_items
-      installment_period = Spree::Config[:installment_period]
-      installment_period_span = Spree::Config[:installment_period_span]
-      installment_amount = (shipment_to_pay / installment_period).round(2)
-      installment_total = 0
-
-      installment_amount_pool = (1...installment_period).each_with_object([]) do |i_period, pool|
-        pool << installment_amount
-      end
-
-      installment_amount_pool << (shipment_to_pay - installment_amount_pool.sum).round(2)
-      installment_amount_pool
-    end
-
     def create_installments
-      installment_amount_pool = calculate_installments
+      installment_amount_pool = Spree::InstallmentCalculator.new(self.final_price_with_items).installments
+      installment_period_span = Spree::Config[:installment_period_span]
 
       installment_amount_pool.each_with_index do |inst_amount, index|
         self.installment_plan.installments.create({
           name: "Installment #{index+1} : #{inst_amount}",
           amount: inst_amount,
-          due_at: Time.now + (index * installment_period_span).days
+          due_at: Time.zone.now + (index * installment_period_span).days
         })
       end
     end

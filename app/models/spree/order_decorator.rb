@@ -1,7 +1,19 @@
 Spree::Order.class_eval do
   def process_payments!
-    create_revised_payments if has_installment_capable_shipments
+    create_revised_payments if Spree::Config['auto_capture_on_dispatch'] && has_installment_capable_shipments
     process_payments_with(:process!)
+  end
+
+  def create_shipment_payment(amount, payment, shipment_id)
+    self.payments.create! amount: amount,
+                          payment_method: payment.payment_method,
+                          source: payment.source,
+                          shipment_id: shipment_id,
+                          state: 'checkout'
+  end
+
+  def has_installment_capable_shipments
+    self.shipments.select { |s| s.installment_capable? }.any?
   end
 
   private
@@ -17,14 +29,7 @@ Spree::Order.class_eval do
       end
 
       shipment_id, authorizable_amount = shipment_amounts.max_by { |k,v| v }
-
-      self.payments.create! amount: authorizable_amount,
-                            payment_method: payment.payment_method,
-                            source: payment.source,
-                            state: 'checkout'
+      create_shipment_payment(authorizable_amount, payment, shipment_id)
     end
 
-    def has_installment_capable_shipments
-      self.shipments.select { |s| s.installment_capable? }.any?
-    end
 end

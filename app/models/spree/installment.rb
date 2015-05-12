@@ -27,15 +27,19 @@ module Spree
     def before_paid
       order = self.installment_plan.shipment.order
       pending_payments =  order.pending_payments
-                            .sort_by(&:uncaptured_amount).reverse
+      shipment_payments = pending_payments.where(shipment_id: self.installment_plan.shipment.id)
 
-      payment = pending_payments.first
-
-      cents = (self.amount * 100).to_i
-      if payment.payment_method.type == "Spree::Gateway::BraintreeGateway"
-        payment.capture_installment!(cents)
+      unless shipment_payments.any?
+        payment = order.create_shipment_payment(self.amount, payment, sself.installment_plan.shipment.id)
       else
-        payment.capture!(cents)
+        payment = shipment_payments.sort_by(&:uncaptured_amount).reverse.first
+        cents = (self.amount * 100).to_i
+
+        if payment.payment_method.type == "Spree::Gateway::BraintreeGateway"
+          payment.capture_installment!(cents)
+        else
+          payment.capture!(cents)
+        end
       end
     end
   end

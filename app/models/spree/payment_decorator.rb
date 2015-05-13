@@ -1,16 +1,15 @@
 Spree::Payment.class_eval do
-
-  def capture_installment!(amount)
+  def paypal_capture!(amount = nil)
     return true if completed?
     started_processing!
     protect_from_connection_error do
-      check_environment
-      response = payment_method.send(:purchase, amount,
-                                     source,
-                                     gateway_options)
-
-      money = ::Money.new(amount, currency)
-      capture_events.create!(amount: money.to_f)
+      # Standard ActiveMerchant capture usage
+      response = payment_method.capture(
+        amount,
+        response_code,
+        gateway_options
+      )
+      capture_events.create!(amount: amount)
       split_uncaptured_amount
       handle_response(response, :complete, :failure)
     end

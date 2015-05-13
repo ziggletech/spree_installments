@@ -31,26 +31,31 @@ module Spree
       shipment_payments = shipment.pending_shipment_payments
 
       unless shipment_payments.any?
-        payment = order.create_shipment_payment(self.amount, shipment.authorized_payment, shipment.id)
-        payment.purchase!
+        capture_payment!(order.create_shipment_payment(self.amount, shipment.authorized_payment, shipment.id))
       else
-        payment = shipment_payments.first
-        cents = (self.amount * 100).to_i
-
-        if payment.payment_method.type == "Spree::Gateway::BraintreeGateway"
-          payment.capture_installment!(cents)
-        else
-          payment.capture!(cents)
-        end
-      end
-
-      if payment.completed?
-        self.update_column(:paid_at, Time.zone.now)
-        complete!
-      else
-        failure!
+        capture_payment!(shipment_payments.first)
       end
 
     end
+
+    private
+      def capture_payment!(payment)
+        if payment.payment_method.type == "Spree::Gateway::BraintreeGateway"
+          payment.purchase!
+        elsif payment.payment_method.type == "Spree::Gateway::PayPalExpress"
+          payment.paypal_capture!(self.amount)
+        else
+          cents = (self.amount * 100).to_i
+          payment.capture!(cents)
+        end
+
+        if payment.completed?
+          self.update_column(:paid_at, Time.zone.now)
+          complete!
+        else
+          failure!
+        end
+      end
+
   end
 end

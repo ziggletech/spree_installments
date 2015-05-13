@@ -70,11 +70,19 @@ Spree::Shipment.class_eval do
                               payment.amount
                             end
 
-        cents = (capturable_amount * 100).to_i
-        payment.capture!(cents)
+        capture_payment!(payment, capturable_amount)
         shipment_to_pay -= capturable_amount
       end
 
+    end
+
+    def capture_payment!(payment, capturable_amount)
+      if payment.payment_method.type == "Spree::Gateway::PayPalExpress"
+        payment.paypal_capture!(capturable_amount)
+      else
+        cents = (capturable_amount * 100).to_i
+        payment.capture!(cents)
+      end
     end
 
     def create_installment_plan

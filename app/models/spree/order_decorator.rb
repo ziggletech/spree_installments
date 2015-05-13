@@ -7,6 +7,10 @@ Spree::Order.class_eval do
 
   def create_shipment_payment(amount, payment, shipment_id)
     self.payments.create! amount: amount,
+                          avs_response: payment.avs_response,
+                          cvv_response_code: payment.cvv_response_code,
+                          cvv_response_message: payment.cvv_response_message,
+                          response_code: payment.response_code,
                           payment_method: payment.payment_method,
                           source: payment.source,
                           shipment_id: shipment_id,

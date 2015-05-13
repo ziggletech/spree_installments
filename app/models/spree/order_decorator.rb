@@ -1,6 +1,7 @@
 Spree::Order.class_eval do
   def process_payments!
     create_revised_payments if Spree::Config['auto_capture_on_dispatch'] && has_installment_capable_shipments
+    # authorize or capture revised payment
     process_payments_with(:process!)
   end
 

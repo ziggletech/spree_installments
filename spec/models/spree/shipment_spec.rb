@@ -51,25 +51,24 @@ describe Spree::Shipment, :type => :model do
       create_inventory_unit(line_item_no)
       expect(shipment.installment_capable?).to be_falsy
     end
+  end
 
-    context 'with Config.auto_capture_on_dispatch == true' do
-      before do
-        Spree::Config[:auto_capture_on_dispatch] = true
-        @order = create :completed_order_with_pending_payment
-        @shipment = @order.shipments.first
-      end
-      
-      it "tells the order to process non installment payment in #after_ship for normal shipment" do
-        expect(@shipment).to receive(:process_non_installment_order_payments)
-        @shipment.ship!
-      end
-
-      it "tells the order to process installment payment in #after_ship for install_capable shipments" do
-        allow(@shipment).to receive_messages installment_capable?: true
-        expect(@shipment).to receive(:process_installment_order_payments)
-        @shipment.ship!
-      end
+  context 'with Config.auto_capture_on_dispatch == true' do
+    before do
+      Spree::Config[:auto_capture_on_dispatch] = true
+      @order = create :completed_order_with_pending_payment
+      @shipment = @order.shipments.first
+    end
+    
+    it "tells the order to process non installment payment in #after_ship for normal shipment" do
+      expect(@shipment).to receive(:process_non_installment_order_payments)
+      @shipment.ship!
     end
 
+    it "tells the order to process installment payment in #after_ship for install_capable shipments" do
+      allow(@shipment).to receive_messages installment_capable?: true
+      expect(@shipment).to receive(:process_installment_order_payments)
+      @shipment.ship!
+    end
   end
 end

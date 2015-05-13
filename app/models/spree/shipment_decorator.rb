@@ -3,7 +3,6 @@ Spree::Shipment.class_eval do
   has_one :installment_plan, class_name: 'Spree::InstallmentPlan', foreign_key: "shipment_id"
 
   def process_order_payments
-    byebug
     if installment_capable?
       process_installment_order_payments
     else
@@ -29,7 +28,6 @@ Spree::Shipment.class_eval do
   end
 
   def authorized_payment
-    byebug
     pending_payments = order.pending_payments.sort_by(&:uncaptured_amount).reverse
     return pending_payments.first unless pending_payments.empty?
     order.payments.select { |payment| payment.completed? }

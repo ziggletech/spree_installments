@@ -90,10 +90,11 @@ Spree::Shipment.class_eval do
       installment_period = Spree::Config[:installment_period]
       installment_period_span = Spree::Config[:installment_period_span]
 
-      variant_product = inventory_units.includes(:variant).first.variant.product
+      variant = inventory_units.includes(:variant).first.variant
 
       self.create_installment_plan!({
-        product_id: variant_product.id,
+        product_id: variant.product.id,
+        variant_id: variant.id,
         email: self.order.email,
         period: installment_period,
         period_span: installment_period_span,

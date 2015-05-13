@@ -1,5 +1,5 @@
 class AddShipmentIdToSpreePayments < ActiveRecord::Migration
   def change
-    t.references :shipment
+    add_column :spree_payments, :shipment_id, :integer
   end
 end

@@ -43,9 +43,7 @@ Spree::Shipment.class_eval do
       payments_amount = 0
 
       if pending_payments.empty?
-        # create new payment and do purchase
-        payment = order.create_shipment_payment(shipment_to_pay, order.authorized_payment, self.id)
-        capture_payment!(payment, shipment_to_pay, "sale")
+        purchase_payment!
       else
         payments_pool = pending_payments.each_with_object([]) do |payment, pool|
           break if payments_amount >= shipment_to_pay
@@ -66,6 +64,13 @@ Spree::Shipment.class_eval do
       end
     end
 
+    def purchase_payment!
+      # create new payment and do purchase
+      shipment_to_pay = final_price_with_items
+      payment = order.create_shipment_payment(shipment_to_pay, order.authorized_payment, self.id)
+      capture_payment!(payment, shipment_to_pay, "sale")
+    end
+
     def capture_payment!(payment, capturable_amount, transaction_type=nil)
       if payment.payment_method.type == "Spree::Gateway::PayPalExpress"
         payment.paypal_capture!(capturable_amount)
@@ -75,6 +80,9 @@ Spree::Shipment.class_eval do
         else
           cents = (capturable_amount * 100).to_i
           payment.capture!(cents)
+
+          # do purchase if capture fails
+          purchase_payment! if payment.failed?
         end
       end
     end

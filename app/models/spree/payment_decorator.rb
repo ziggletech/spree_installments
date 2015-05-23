@@ -1,4 +1,5 @@
 Spree::Payment.class_eval do
+  # paypal accepts payment amount in USD hence this method
   def paypal_capture!(amount = nil)
     return true if completed?
     started_processing!

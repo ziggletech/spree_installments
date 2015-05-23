@@ -27,13 +27,6 @@ Spree::Shipment.class_eval do
       .sort_by(&:uncaptured_amount).reverse
   end
 
-  def authorized_payment
-    pending_payments = order.pending_payments.sort_by(&:uncaptured_amount).reverse
-    return pending_payments.first unless pending_payments.empty?
-    order.payments.select { |payment| payment.completed? }
-      .sort_by(&:updated_at).reverse.first
-  end
-
   private
     def process_installment_order_payments
       create_installment_plan
@@ -42,46 +35,47 @@ Spree::Shipment.class_eval do
     end
 
     def process_non_installment_order_payments
+      pending_payments =  order.pending_payments
+                            .sort_by(&:uncaptured_amount).reverse
+
+
       shipment_to_pay = final_price_with_items
-
-      if order.has_installment_capable_shipments
-        pending_payments = pending_shipment_payments
-        unless pending_payments.any?
-          payment = order.create_shipment_payment(shipment_to_pay, authorized_payment, self.id)
-          payment.purchase!
-          return
-        end
-      else
-        pending_payments = order.pending_payments.sort_by(&:uncaptured_amount).reverse
-      end
-
       payments_amount = 0
 
-      payments_pool = pending_payments.each_with_object([]) do |payment, pool|
-        break if payments_amount >= shipment_to_pay
-        payments_amount += payment.uncaptured_amount
-        pool << payment
+      if pending_payments.empty?
+        # create new payment and do purchase
+        payment = order.create_shipment_payment(shipment_to_pay, order.authorized_payment, self.id)
+        capture_payment!(payment, shipment_to_pay, "sale")
+      else
+        payments_pool = pending_payments.each_with_object([]) do |payment, pool|
+          break if payments_amount >= shipment_to_pay
+          payments_amount += payment.uncaptured_amount
+          pool << payment
+        end
+
+        payments_pool.each do |payment|
+          capturable_amount = if payment.amount >= shipment_to_pay
+                                shipment_to_pay
+                              else
+                                payment.amount
+                              end
+
+          capture_payment!(payment, capturable_amount)
+          shipment_to_pay -= capturable_amount
+        end
       end
-
-      payments_pool.each do |payment|
-        capturable_amount = if payment.amount >= shipment_to_pay
-                              shipment_to_pay
-                            else
-                              payment.amount
-                            end
-
-        capture_payment!(payment, capturable_amount)
-        shipment_to_pay -= capturable_amount
-      end
-
     end
 
-    def capture_payment!(payment, capturable_amount)
+    def capture_payment!(payment, capturable_amount, transaction_type=nil)
       if payment.payment_method.type == "Spree::Gateway::PayPalExpress"
         payment.paypal_capture!(capturable_amount)
       else
-        cents = (capturable_amount * 100).to_i
-        payment.capture!(cents)
+        if transaction_type == "sale"
+          payment.purchase!
+        else
+          cents = (capturable_amount * 100).to_i
+          payment.capture!(cents)
+        end
       end
     end
 

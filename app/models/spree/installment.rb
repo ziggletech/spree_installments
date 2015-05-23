@@ -28,25 +28,15 @@ module Spree
       started_processing!
       shipment = self.installment_plan.shipment
       order = shipment.order
-      shipment_payments = shipment.pending_shipment_payments
-
-      unless shipment_payments.any?
-        capture_payment!(order.create_shipment_payment(self.amount, shipment.authorized_payment, shipment.id))
-      else
-        capture_payment!(shipment_payments.first)
-      end
-
+      capture_payment! order.create_shipment_payment(self.amount, order.authorized_payment, shipment.id)
     end
 
     private
       def capture_payment!(payment)
-        if payment.payment_method.type == "Spree::Gateway::BraintreeGateway"
-          payment.purchase!
-        elsif payment.payment_method.type == "Spree::Gateway::PayPalExpress"
+        if payment.payment_method.type == "Spree::Gateway::PayPalExpress"
           payment.paypal_capture!(self.amount)
         else
-          cents = (self.amount * 100).to_i
-          payment.capture!(cents)
+          payment.purchase!
         end
 
         if payment.completed?

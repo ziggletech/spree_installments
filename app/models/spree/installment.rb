@@ -21,7 +21,7 @@ module Spree
     end
 
     def self.past_due(date=Time.zone.now)
-      due.where("due_at <= ?", date)
+      due.where("due_at <= ? OR state = ?", date, "failed")
     end
 
     def capture!

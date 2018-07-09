@@ -69,9 +69,12 @@
               <%= installment.state %>
             </td>
             <td class="order-status">
-              <%= link_to 'collect', {action: :captureInstalment, id:installment.id }, method: :get, class: 'btn btn-danger' if (installment.state != 'completed')%>
-              <%  unless (installment.state != 'completed')%>
+              <%= link_to 'collect', {action: :captureInstalment, id:installment.id }, method: :get, class: 'btn btn-warning' if (installment.state != 'completed' && installment.state != 'failed')%>
+              <%  if (installment.state != 'failed' && installment.state != 'pending')%>
                   <button class="btn btn-success" disabled="disabled">Collected</button>
+              <% end %>
+              <%  if (installment.state == 'failed')%>
+                  <button class="btn btn-danger" disabled="disabled">Failed</button>
               <% end %>
             </td>
           </tr>

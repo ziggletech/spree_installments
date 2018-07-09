@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.require_path = 'lib'
   s.requirements << 'none'
 
-  s.add_dependency 'spree_core', '~> 3.1.5'
+  s.add_dependency 'spree_core', '<= 3.6.2'
   s.add_dependency 'resque', '~> 1.25'
   s.add_dependency 'resque-scheduler'
 

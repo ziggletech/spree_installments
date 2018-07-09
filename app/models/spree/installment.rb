@@ -24,6 +24,10 @@ module Spree
       due.where("due_at <= ? OR state = ?", date, "failed")
     end
 
+    def self.past_due_email(date=Time.zone.now - 1.day)
+      due.where("due_at <= ? OR state = ?", date, "pending")
+    end
+
     def capture!
       started_processing!
       shipment = self.installment_plan.shipment

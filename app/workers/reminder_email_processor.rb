@@ -4,7 +4,8 @@ class ReminderEmailProcessor
     def self.perform
       due_installments = Spree::Installment.past_due_email(Time.zone.now)
       due_installments.each do |due_installment|
-        InstalmentReminderMailer.reminder_email('test@gmail.com','Installment due').deliver_now
+        InstalmentReminderMailer.reminder_email('test@gmail.com','Installment due').deliver_now;
+        due_installment.update_columns(isReminderSend: true);
       end
     end
   end

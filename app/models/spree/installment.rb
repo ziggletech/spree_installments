@@ -25,7 +25,7 @@ module Spree
     end
 
     def self.past_due_email(date=Time.zone.now - 1.day)
-      due.where("due_at <= ? OR state = ?", date, "pending")
+      due.where("due_at <= ? OR state = ? AND isReminderSend = ?", date, "pending", false)
     end
 
     def capture!

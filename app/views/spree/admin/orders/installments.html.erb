@@ -1,0 +1,111 @@
+<%= render partial: 'spree/admin/shared/order_tabs', locals: { current: :installments } %>
+
+<% content_for :page_title do %>
+  <%= Spree.t(:installments) %>
+<% end %>
+
+
+<% if @installmentPlan %>
+
+<!-- Installment plan start-->
+  <h3> Plan </h3>
+  <div class="table-responsive">
+    <table class="table table-striped order-summary">
+      <thead class="active">
+        <tr>
+          <th class="order-number">Product Name</th>
+          <th class="order-number">Total Amount</th>
+          <th class="order-date"> Email</th>
+          <th class="order-status">Months</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td class="order-number">
+              <%= @installmentPlan.product.name %>
+            </td>
+            <td class="order-number">
+              $<%= @installmentPlan.amount %>
+            </td>
+            <td class="order-date">
+              <%= @installmentPlan.email %>
+            </td>
+            <td class="order-status">
+              <%= @installmentPlan.period %>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- card end-->
+
+  <!-- Installments start-->
+  <h3> Installments </h3>
+  <div class="table-responsive">
+    <table class="table table-striped order-summary">
+      <thead class="active">
+        <tr>
+          <th class="order-number">Amount</th>
+          <th class="order-number">Due At</th>
+          <th class="order-date">Paid At</th>
+          <th class="order-status">State</th>
+          <th class="order-status">Capture Manually</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @installmentPlan.installments.order(:paid_at).each do |installment|  %>
+          <tr>
+            <td class="order-number">
+              $<%=installment.amount %>
+            </td>
+            <td class="order-number">
+              <%= installment.due_at.to_date %>
+            </td>
+            <td class="order-date">
+              <%= installment.paid_at.to_date if installment.paid_at %>
+            </td>
+             <td class="order-status">
+              <%= installment.state %>
+            </td>
+            <td class="order-status">
+              <%= link_to 'collect', {action: :captureInstalment, id:installment.id }, method: :get, class: 'btn btn-danger' if (installment.state != 'completed')%>
+              <%  unless (installment.state != 'completed')%>
+                  <button class="btn btn-success" disabled="disabled">Collected</button>
+              <% end %>
+            </td>
+          </tr>
+          <% end %>
+      </tbody>
+    </table>
+  </div>
+  <!-- card end-->
+
+<% end %>
+
+<% if !@installmentPlan %>
+     <% if (@order.EmiOptionId != '0' && @order.EmiOptionId != nil) %>
+  <h3 style="text-align: center;"> Installments </h3>
+  <div class="row">
+    <% @installments.each_with_index  do |installment, index|  %>
+      <div class="col-md-4">
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <%= index+1 %> <br>
+            <%= 'Deducted when item shipped' if index == 0 %> 
+            <%= installment.due_at.to_date if index != 0 %> <br>
+            <%= installment.amount %> <br>
+          </div>
+        </div>
+      </div>
+      <% end %>
+  </div>
+
+  <% else%>
+  No Installment Plan
+<% end %>
+
+
+<% end %>
+
+

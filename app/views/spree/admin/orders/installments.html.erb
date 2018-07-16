@@ -41,7 +41,8 @@
   <!-- card end-->
 
   <!-- Installments start-->
-  <h3> Installments </h3>
+  <h3> Installments </h3> 
+  <%= link_to 'Collect All Now', {action: :captureAllInstallments, id:@installmentPlan.id }, method: :get, class: 'btn btn-info' if  @installmentPlan.installments.where("paid_at IS NULL").any? %>
   <div class="table-responsive">
     <table class="table table-striped order-summary">
       <thead class="active">
@@ -54,7 +55,7 @@
         </tr>
       </thead>
       <tbody>
-        <% @installmentPlan.installments.order(:paid_at).each do |installment|  %>
+        <% @installmentPlan.installments.order(:due_at).each do |installment|  %>
           <tr>
             <td class="order-number">
               $<%=installment.amount %>
@@ -69,7 +70,7 @@
               <%= installment.state %>
             </td>
             <td class="order-status">
-              <%= link_to 'collect', {action: :captureInstalment, id:installment.id }, method: :get, class: 'btn btn-warning' if (installment.state != 'completed' && installment.state != 'failed')%>
+              <%= link_to 'Collect Now', {action: :captureInstalment, id:installment.id }, method: :get, class: 'btn btn-warning' if (installment.state != 'completed' && installment.state != 'failed')%>
               <%  if (installment.state != 'failed' && installment.state != 'pending')%>
                   <button class="btn btn-success" disabled="disabled">Collected</button>
               <% end %>

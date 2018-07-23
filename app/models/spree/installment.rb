@@ -6,6 +6,9 @@ module Spree
     scope :paid, -> { with_state('completed') }
     scope :failed, -> { with_state('failed') }
 
+    scope :forEMIProcessing, -> { with_states('pending','processing')}
+    scope :forReminderEmail, -> { with_states('pending')}
+
     state_machine :state, initial: :pending do
       event :failure do
         transition from: [:pending, :processing], to: :failed
@@ -20,12 +23,12 @@ module Spree
       end
     end
 
-    def self.past_due(date=Time.zone.now)
-      due.where("due_at <= ? OR state = ?", date, "failed")
+      def self.past_due_installment_capture(date=Time.zone.now)
+        forEMIProcessing.where("due_at <= ?", date)
     end
 
-    def self.past_due_email(date=Time.zone.now - 1.day)
-      due.where("due_at <= ? OR state = ? AND isReminderSend = ?", date, "pending", false)
+    def self.past_due_installment_reminder(date=Time.zone.now - 1.day)
+      forReminderEmail.where("due_at <= ?", date).where({isReminderSend: false});
     end
 
     def capture!

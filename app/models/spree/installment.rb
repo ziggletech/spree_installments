@@ -27,7 +27,7 @@ module Spree
         forEMIProcessing.where("due_at <= ?", date)
     end
 
-    def self.past_due_installment_reminder(date=Time.zone.now - 1.day)
+    def self.past_due_installment_reminder(date=Time.zone.now +1.day)
       forReminderEmail.where("due_at <= ?", date).where({isReminderSend: false});
     end
 

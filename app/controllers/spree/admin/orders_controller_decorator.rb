@@ -36,5 +36,25 @@ Spree::Admin::OrdersController.class_eval do
 
         redirect_to request.referer
       end
+
+      def deleteInstalment
+        @id = params[:id]
+         installment = Spree::Installment.find_by_id(@id)
+         installment.destroy if installment
+        redirect_to request.referer
+      end
+
+      def editInstalment
+        @id = params[:id]
+        @installment = Spree::Installment.find_by_id(@id)
+      end
+
+      def updateInstalment
+        installment = Spree::Installment.find_by_id(params[:id])
+        installment.update_column(:amount,params[:amount])
+        installment.update_column(:due_at,(params[:due_at]+" 11:00:00.80099"))
+
+        redirect_to request.referer
+      end
       
 end

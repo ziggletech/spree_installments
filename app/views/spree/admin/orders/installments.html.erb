@@ -52,6 +52,7 @@
           <th class="order-date">Paid At</th>
           <th class="order-status">State</th>
           <th class="order-status">Capture Manually</th>
+          <th class="order-status">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -77,6 +78,10 @@
               <%  if (installment.state == 'failed')%>
                   <button class="btn btn-danger" disabled="disabled">Failed</button>
               <% end %>
+            </td>
+            <td class="order-status">
+            <%= link_to 'Delete', {action: :deleteInstalment, id:installment.id }, method: :get, class: 'btn btn-danger'  if (installment.state != 'completed')%>
+            <%= link_to 'Edit', {action: :editInstalment, id:installment.id }, method: :get, class: 'btn btn-success'  if (installment.state != 'completed')%>
             </td>
           </tr>
           <% end %>

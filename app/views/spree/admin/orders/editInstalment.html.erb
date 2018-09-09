@@ -1,0 +1,29 @@
+<script>
+$(document).ready(function() {
+    $('#due_at').addClass('datepicker form-control hasDatepicker')
+});
+</script>
+
+<h1> <%=  @installment.name %></h1>
+
+<%= form_tag admin_orders_updateInstalment_path, method: :put do %>
+
+    <div class="row">
+    <div class="col-md-4" data-hook="editor_preferences">
+    <%= preference_field_tag(:amount, @installment.amount , class: 'control-form') %>
+    </div>
+  
+    <div class="col-md-4" data-hook="editor_preferences">
+    <%= text_field_tag 'due_at', datepicker_field_value(@installment.due_at), class: 'form-control datepicker' %>
+   </div>
+  </div>
+  <div class="row">
+  <div class="col-md-4" data-hook="editor_preferences" style="display:none">
+  <%= preference_field_tag(:id, @installment.id , class: 'control-form') %>
+  </div>
+
+  <div class="form-actions actions" data-hook="buttons">
+    <%= button Spree.t('actions.update'), 'update' %>
+  </div>
+
+  <% end %> 
